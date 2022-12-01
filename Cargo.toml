@@ -2,6 +2,15 @@
 name = "pkgdu"
 version = "0.1.0"
 
+authors = ["Bhanupong Petchlert <bpetlert@gmail.com>"]
+
+description = "A tool to display packages disk usage size"
+documentation = "https://github.com/bpetlert/pkgdu"
+homepage = "https://github.com/bpetlert/pkgdu"
+license = "GPL-3.0-or-later"
+readme = "README.adoc"
+repository = "https://github.com/bpetlert/pkgdu"
+
 edition = "2021"
 publish = false
 

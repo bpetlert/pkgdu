@@ -14,6 +14,10 @@ pub struct Arguments {
 
     #[arg(long)]
     pub show_description: bool,
+
+    /// Display a grand total
+    #[arg(long)]
+    pub total: bool,
 }
 
 #[derive(Debug, Clone, clap::ValueEnum)]

@@ -16,6 +16,7 @@ pub struct Report {
     pkgs: Vec<PkgDiskUsage>,
     sort: SortColumn,
     show_description: bool,
+    total: bool,
 }
 
 #[derive(Debug, Tabled)]
@@ -34,11 +35,12 @@ pub struct PkgDiskUsage {
 pub struct FileSize(i64);
 
 impl Report {
-    pub fn new(sort: SortColumn, show_description: bool) -> Self {
+    pub fn new(sort: SortColumn, show_description: bool, total: bool) -> Self {
         Self {
             pkgs: Vec::new(),
             sort,
             show_description,
+            total,
         }
     }
 
@@ -48,6 +50,7 @@ impl Report {
             Alpm::new(pacman_conf.root_dir, pacman_conf.db_path).context("Could not access ALPM")?
         };
 
+        // Load installed packages' info
         self.pkgs = alpm
             .localdb()
             .pkgs()
@@ -59,6 +62,7 @@ impl Report {
             })
             .collect();
 
+        // Sort report
         match self.sort {
             SortColumn::NameAscending => self.pkgs.sort_by_key(|k| k.name.clone()),
             SortColumn::NameDescending => self.pkgs.sort_by_key(|k| Reverse(k.name.clone())),
@@ -66,6 +70,16 @@ impl Report {
             SortColumn::InstalledSizeDescending => {
                 self.pkgs.sort_by_key(|k| Reverse(k.installed_size.0))
             }
+        }
+
+        // Add a grand total
+        if self.total {
+            let total: i64 = self.pkgs.iter().map(|pkg| pkg.installed_size.0).sum();
+            self.pkgs.push(PkgDiskUsage {
+                name: "(TOTAL)".to_string(),
+                installed_size: FileSize(total),
+                description: "".to_string(),
+            })
         }
 
         Ok(())

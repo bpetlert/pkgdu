@@ -3,6 +3,10 @@ use clap::Parser;
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Arguments {
+    /// Specify the glob pattern for packages matching.
+    #[arg()]
+    pub pkgname_glob: Option<String>,
+
     /// Change the default column to sort on
     #[arg(
         long,

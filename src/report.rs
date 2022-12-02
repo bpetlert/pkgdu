@@ -1,6 +1,6 @@
 use std::cmp::Reverse;
 
-use alpm::Alpm;
+use alpm::{Alpm, Package};
 use anyhow::{Context, Result};
 use humansize::{format_size_i, FormatSizeOptions, DECIMAL};
 use pacmanconf::Config;
@@ -14,6 +14,8 @@ use crate::args::SortColumn;
 #[derive(Debug)]
 pub struct Report {
     pkgs: Vec<PkgDiskUsage>,
+
+    pkgname_glob: Option<String>,
     sort: SortColumn,
     description: bool,
     total: bool,
@@ -36,8 +38,15 @@ pub struct PkgDiskUsage {
 pub struct FileSize(i64);
 
 impl Report {
-    pub fn new(sort: SortColumn, description: bool, total: bool, quiet: bool) -> Self {
+    pub fn new(
+        pkgname_glob: Option<String>,
+        sort: SortColumn,
+        description: bool,
+        total: bool,
+        quiet: bool,
+    ) -> Self {
         Self {
+            pkgname_glob,
             pkgs: Vec::new(),
             sort,
             description,
@@ -52,21 +61,28 @@ impl Report {
             Alpm::new(pacman_conf.root_dir, pacman_conf.db_path).context("Could not access ALPM")?
         };
 
-        // Quiet option
-        if self.quiet {
-            let total: i64 = alpm.localdb().pkgs().iter().map(|pkg| pkg.isize()).sum();
-            self.pkgs.push(PkgDiskUsage {
-                name: "(TOTAL)".to_string(),
-                installed_size: FileSize(total),
-                description: "".to_string(),
-            });
-            return Ok(());
-        }
+        // Apply PKGNAME_GLOB
+        let installed_pkgs: Vec<Package> = match &self.pkgname_glob {
+            Some(pkgname_glob) => {
+                let glob = {
+                    static RE: once_cell::sync::OnceCell<regex::Regex> =
+                        once_cell::sync::OnceCell::new();
+                    RE.get_or_init(|| {
+                        regex::Regex::new(pkgname_glob).expect("Creating pkgname glob regex")
+                    })
+                };
+
+                alpm.localdb()
+                    .pkgs()
+                    .iter()
+                    .filter(|pkg| glob.is_match(pkg.name()))
+                    .collect()
+            }
+            None => alpm.localdb().pkgs().iter().collect(),
+        };
 
         // Load installed packages' info
-        self.pkgs = alpm
-            .localdb()
-            .pkgs()
+        self.pkgs = installed_pkgs
             .iter()
             .map(|pkg| PkgDiskUsage {
                 installed_size: FileSize(pkg.isize()),
@@ -74,6 +90,8 @@ impl Report {
                 description: pkg.desc().unwrap_or("").to_owned(),
             })
             .collect();
+
+        let total_size: i64 = self.pkgs.iter().map(|pkg| pkg.installed_size.0).sum();
 
         // Sort report
         match self.sort {
@@ -85,12 +103,17 @@ impl Report {
             }
         }
 
+        // Quiet option
+        if self.quiet {
+            self.pkgs = Vec::new();
+            self.total = true;
+        }
+
         // Add a grand total
         if self.total {
-            let total: i64 = self.pkgs.iter().map(|pkg| pkg.installed_size.0).sum();
             self.pkgs.push(PkgDiskUsage {
                 name: "(TOTAL)".to_string(),
-                installed_size: FileSize(total),
+                installed_size: FileSize(total_size),
                 description: "".to_string(),
             });
         }

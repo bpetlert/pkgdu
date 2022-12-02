@@ -6,7 +6,7 @@ use std::{
     process::ExitCode,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
 use tracing::{debug, error};
 use tracing_subscriber::EnvFilter;
@@ -38,7 +38,16 @@ fn run() -> Result<()> {
         .context("Failed to calculate sum of file sizes for each installed packages")?;
 
     let mut stdout = io::BufWriter::new(io::stdout().lock());
-    writeln!(stdout, "{report}").context("Could not write report to STDOUT")?;
+    if let Err(err) = writeln!(stdout, "{report}").context("Could not write report to STDOUT") {
+        if let Some(io_err) = err.downcast_ref::<io::Error>() {
+            match io_err.kind() {
+                io::ErrorKind::BrokenPipe => return Ok(()),
+                _ => bail!("{err:#}"),
+            }
+        } else {
+            bail!("{err:#}");
+        }
+    }
 
     Ok(())
 }

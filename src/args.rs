@@ -18,6 +18,10 @@ pub struct Arguments {
     /// Display a grand total
     #[arg(long)]
     pub total: bool,
+
+    /// Show only a grand total. Do not show package's size report.
+    #[arg(long)]
+    pub quiet: bool,
 }
 
 #[derive(Debug, Clone, clap::ValueEnum)]

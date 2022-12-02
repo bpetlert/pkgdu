@@ -1,0 +1,46 @@
+# Maintainer: Bhanupong Petchlert <bpetlert@gmail.com>
+pkgname=pkgdu
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="A tool to display packages disk usage size"
+arch=('x86_64')
+url="https://github.com/bpetlert/pkgdu"
+license=('GPL-3.0-or-later')
+depends=()
+makedepends=(cargo)
+provides=("${pkgname}")
+conflicts=("${pkgname}")
+
+# Build from local directory
+source=()
+
+# Using the most recent annotated tag reachable from the last commit.
+pkgver() {
+  cd "$startdir"
+  git describe --long | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+prepare() {
+  cd "$startdir"
+  cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+}
+
+build() {
+  cd "$startdir"
+
+  export RUSTUP_TOOLCHAIN=stable
+
+  # Ignore target-dir in ~/.cargo/config, reset it to default: "target".
+  # Add "$srcdir" to support BUILDDIR variable in makepkg.
+  export CARGO_TARGET_DIR=$srcdir/target
+
+  cargo build  --frozen --release
+}
+
+package() {
+  cd "$srcdir"
+  install -Dm755 "target/release/pkgdu" "$pkgdir/usr/bin/pkgdu"
+
+  install -Dm644 "$startdir/README.adoc" "$pkgdir/usr/share/doc/${pkgname}/README.adoc"
+  install -Dm644 "$startdir/COPYING" "$pkgdir/usr/share/licenses/${pkgname}/COPYING"
+}

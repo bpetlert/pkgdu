@@ -13,7 +13,7 @@ pub struct Arguments {
     pub sort: SortColumn,
 
     #[arg(long)]
-    pub show_description: bool,
+    pub description: bool,
 
     /// Display a grand total
     #[arg(long)]

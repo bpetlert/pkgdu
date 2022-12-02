@@ -15,7 +15,7 @@ use crate::args::SortColumn;
 pub struct Report {
     pkgs: Vec<PkgDiskUsage>,
     sort: SortColumn,
-    show_description: bool,
+    description: bool,
     total: bool,
     quiet: bool,
 }
@@ -36,11 +36,11 @@ pub struct PkgDiskUsage {
 pub struct FileSize(i64);
 
 impl Report {
-    pub fn new(sort: SortColumn, show_description: bool, total: bool, quiet: bool) -> Self {
+    pub fn new(sort: SortColumn, description: bool, total: bool, quiet: bool) -> Self {
         Self {
             pkgs: Vec::new(),
             sort,
-            show_description,
+            description,
             total,
             quiet,
         }
@@ -107,7 +107,7 @@ impl std::fmt::Display for Report {
             .with(Disable::row(Rows::first())) // No headers
             .with(Modify::new(Columns::new(..)).with(Alignment::left()));
 
-        if !self.show_description {
+        if !self.description {
             // FIXME: Why using ByColumnName with #[tabled(rename = "Description", order = 2)] does not work?
             // table.with(Disable::column(ByColumnName::new("Description")));
             table.with(Disable::column(Columns::single(2)));

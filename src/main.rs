@@ -28,7 +28,7 @@ fn run() -> Result<()> {
 
     let mut report = Report::new(
         arguments.sort,
-        arguments.show_description,
+        arguments.description,
         arguments.total,
         arguments.quiet,
     );

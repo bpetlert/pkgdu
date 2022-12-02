@@ -20,11 +20,11 @@ pub struct Arguments {
     pub description: bool,
 
     /// Display a grand total
-    #[arg(long)]
+    #[arg(long, default_value_if("quiet", "true", "true"))]
     pub total: bool,
 
     /// Show only a grand total. Do not show package's size report.
-    #[arg(long)]
+    #[arg(long, conflicts_with_all = ["sort", "description", "total"])]
     pub quiet: bool,
 }
 

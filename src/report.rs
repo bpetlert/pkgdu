@@ -106,7 +106,6 @@ impl Report {
         // Quiet option
         if self.quiet {
             self.pkgs = Vec::new();
-            self.total = true;
         }
 
         // Add a grand total

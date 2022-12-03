@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 
 use alpm::{Alpm, Package};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use humansize::{format_size_i, FormatSizeOptions, DECIMAL};
 use pacmanconf::Config;
 use tabled::{
@@ -67,9 +67,9 @@ impl Report {
                 let pkgname_filter = {
                     static RE: once_cell::sync::OnceCell<regex::Regex> =
                         once_cell::sync::OnceCell::new();
-                    RE.get_or_init(|| {
-                        regex::Regex::new(pkgname_regex).expect("Creating package name regex")
-                    })
+                    RE.get_or_try_init(|| regex::Regex::new(pkgname_regex))
+                        .map_err(|err| anyhow!("{err:#?}"))
+                        .context("Failed to crate package name filter")?
                 };
 
                 alpm.localdb()

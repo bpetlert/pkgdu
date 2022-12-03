@@ -27,7 +27,7 @@ fn run() -> Result<()> {
     debug!("Run with {:?}", arguments);
 
     let mut report = Report::new(
-        arguments.pkgname_regex,
+        arguments.pkgname_pattern,
         arguments.sort,
         arguments.description,
         arguments.total,

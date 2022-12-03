@@ -15,7 +15,7 @@ use crate::args::SortColumn;
 pub struct Report {
     pkgs: Vec<PkgDiskUsage>,
 
-    pkgname_regex: Option<String>,
+    pkgname_pattern: Option<String>,
     sort: SortColumn,
     description: bool,
     total: bool,
@@ -39,14 +39,14 @@ pub struct FileSize(i64);
 
 impl Report {
     pub fn new(
-        pkgname_regex: Option<String>,
+        pkgname_pattern: Option<String>,
         sort: SortColumn,
         description: bool,
         total: bool,
         quiet: bool,
     ) -> Self {
         Self {
-            pkgname_regex,
+            pkgname_pattern,
             pkgs: Vec::new(),
             sort,
             description,
@@ -61,8 +61,8 @@ impl Report {
             Alpm::new(pacman_conf.root_dir, pacman_conf.db_path).context("Could not access ALPM")?
         };
 
-        // Apply PKGNAME_REGEX
-        let installed_pkgs: Vec<Package> = match &self.pkgname_regex {
+        // Apply PKGNAME_PATTERN
+        let installed_pkgs: Vec<Package> = match &self.pkgname_pattern {
             Some(pkgname_regex) => {
                 let pkgname_filter = {
                     static RE: once_cell::sync::OnceCell<regex::Regex> =

@@ -5,7 +5,7 @@ use clap::Parser;
 pub struct Arguments {
     /// Specify the regular expression for matching package name.
     #[arg()]
-    pub pkgname_regex: Option<String>,
+    pub pkgname_pattern: Option<String>,
 
     /// Change the default column to sort on
     #[arg(

@@ -4,7 +4,7 @@ use alpm::{Alpm, Package};
 use anyhow::{anyhow, Context, Result};
 use humansize::{format_size_i, FormatSizeOptions, DECIMAL};
 use pacmanconf::Config;
-use regex::RegexSet;
+use regex::{Regex, RegexSet};
 use tabled::{
     object::{Columns, Rows},
     Alignment, Disable, Modify, Style, Table, Tabled,
@@ -68,7 +68,7 @@ impl Report {
         // Apply PKGNAME_PATTERN
         let mut installed_pkgs: Vec<Package> = match &self.pkgname_pattern {
             Some(pkgname_regex) => {
-                let pkgname_filter = {
+                let pkgname_filter: &Regex = {
                     static RE: once_cell::sync::OnceCell<regex::Regex> =
                         once_cell::sync::OnceCell::new();
                     RE.get_or_try_init(|| regex::Regex::new(pkgname_regex))

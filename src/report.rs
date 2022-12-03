@@ -15,7 +15,7 @@ use crate::args::SortColumn;
 pub struct Report {
     pkgs: Vec<PkgDiskUsage>,
 
-    pkgname_glob: Option<String>,
+    pkgname_regex: Option<String>,
     sort: SortColumn,
     description: bool,
     total: bool,
@@ -39,14 +39,14 @@ pub struct FileSize(i64);
 
 impl Report {
     pub fn new(
-        pkgname_glob: Option<String>,
+        pkgname_regex: Option<String>,
         sort: SortColumn,
         description: bool,
         total: bool,
         quiet: bool,
     ) -> Self {
         Self {
-            pkgname_glob,
+            pkgname_regex,
             pkgs: Vec::new(),
             sort,
             description,
@@ -61,21 +61,21 @@ impl Report {
             Alpm::new(pacman_conf.root_dir, pacman_conf.db_path).context("Could not access ALPM")?
         };
 
-        // Apply PKGNAME_GLOB
-        let installed_pkgs: Vec<Package> = match &self.pkgname_glob {
-            Some(pkgname_glob) => {
-                let glob = {
+        // Apply PKGNAME_REGEX
+        let installed_pkgs: Vec<Package> = match &self.pkgname_regex {
+            Some(pkgname_regex) => {
+                let pkgname_filter = {
                     static RE: once_cell::sync::OnceCell<regex::Regex> =
                         once_cell::sync::OnceCell::new();
                     RE.get_or_init(|| {
-                        regex::Regex::new(pkgname_glob).expect("Creating pkgname glob regex")
+                        regex::Regex::new(pkgname_regex).expect("Creating package name regex")
                     })
                 };
 
                 alpm.localdb()
                     .pkgs()
                     .iter()
-                    .filter(|pkg| glob.is_match(pkg.name()))
+                    .filter(|pkg| pkgname_filter.is_match(pkg.name()))
                     .collect()
             }
             None => alpm.localdb().pkgs().iter().collect(),

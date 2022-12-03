@@ -21,6 +21,7 @@ pub struct Arguments {
     )]
     pub sort: SortColumn,
 
+    /// Show package's description in report.
     #[arg(long)]
     pub description: bool,
 

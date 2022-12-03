@@ -14,6 +14,7 @@ pub struct Arguments {
     /// Change the default column to sort on
     #[arg(
         long,
+        value_name = "COLUMN-[ASC|DESC]",
         value_enum,
         ignore_case = true,
         default_value_t = SortColumn::InstalledSizeDescending

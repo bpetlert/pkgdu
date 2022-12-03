@@ -1,0 +1,103 @@
+= PKGDU
+:toc:
+:toc-placement!:
+ifndef::env-github[:icons: font]
+ifdef::env-github[]
+:status:
+:caution-caption: :fire:
+:important-caption: :exclamation:
+:note-caption: :paperclip:
+:tip-caption: :bulb:
+:warning-caption: :warning:
+endif::[]
+
+*pkgdu* is a tool to display packages disk usage size for Arch Linux.
+
+toc::[]
+
+== Installation
+
+=== Cargo
+
+*pkgdu* can be used without installation by run:
+
+[source,console]
+$ cargo run
+
+To install in `$HOME/.cargo/bin`, run:
+[source,console]
+$ cargo install --path .
+
+=== Arch Linux
+To build and install arch package from GIT source:
+
+[source,console]
+$ git clone https://github.com/bpetlert/pkgdu.git
+$ cd pkgdu
+$ makepkg -p PKGBUILD.local
+$ pacman -U pkgdu-xxxx-1-x86_64.pkg.tar
+
+== Usage
+
+.Normal output
+[source,console]
+----
+$ pkgdu | head
+ 5.61 GB     kicad-library-3d
+ 1.44 GB     texlive-fontsextra
+ 981.10 MB   mingw-w64-gcc
+ 556.60 MB   wine
+ 555.80 MB   rust
+ 436.62 MB   libreoffice-fresh
+ 412.01 MB   texlive-core
+ 390.17 MB   languagetool
+ 386.89 MB   llvm
+ 367.21 MB   noto-fonts-extra
+----
+
+.Include grand total
+[source,console]
+----
+$ pkgdu --total | tail
+ 694 B       fuse-common
+ 221 B       dashbinsh
+ 0 B         base
+ 0 B         ca-certificates
+ 0 B         default-cursors
+ 0 B         kde-system-meta
+ 0 B         msmtp-mta
+ 0 B         ruby-bundledgems
+ 0 B         ruby-stdlib
+ 29.96 GB    (TOTAL)
+----
+
+.Show only grand total
+[source,console]
+----
+$ pkgdu --quiet
+ 29.96 GB   (TOTAL)
+----
+
+.Filter package name using regular expression
+[source,console]
+----
+$ pkgdu --description --total "^cargo-"
+ 71.28 MB    cargo-c           A cargo subcommand to build and install C-ABI compatibile dynamic and static libraries
+ 20.41 MB    cargo-make        Rust task runner and build tool
+ 15.15 MB    cargo-binutils    Cargo subcommands to invoke the LLVM tools shipped with the Rust toolchain
+ 11.84 MB    cargo-deny        Cargo plugin for linting your dependencies
+ 9.76 MB     cargo-udeps       Find unused dependencies in Cargo.toml
+ 7.62 MB     cargo-edit        Managing cargo dependencies from the command line
+ 7.30 MB     cargo-tarpaulin   Tool to analyse test coverage of cargo projects
+ 7.01 MB     cargo-expand      Subcommand to show result of macro expansion
+ 6.98 MB     cargo-outdated    A cargo subcommand for displaying when Rust dependencies are out of date
+ 6.06 MB     cargo-audit       Audit Cargo.lock for crates with security vulnerabilities
+ 5.08 MB     cargo-release     Cargo subcommand "release": everything about releasing a rust crate
+ 2.84 MB     cargo-watch       Utility for Cargo to compile projects when sources change
+ 1.13 MB     cargo-bloat       Find out what takes most of the space in your executable
+ 172.46 MB   (TOTAL)
+----
+
+== License
+
+*link:./COPYING[GNU General Public License v3.0 or later]*

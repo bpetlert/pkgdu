@@ -4,6 +4,7 @@ use alpm::{Alpm, Package};
 use anyhow::{anyhow, Context, Result};
 use humansize::{format_size_i, FormatSizeOptions, DECIMAL};
 use pacmanconf::Config;
+use regex::RegexSet;
 use tabled::{
     object::{Columns, Rows},
     Alignment, Disable, Modify, Style, Table, Tabled,
@@ -16,6 +17,7 @@ pub struct Report {
     pkgs: Vec<PkgDiskUsage>,
 
     pkgname_pattern: Option<String>,
+    exclude_pattern: Option<Vec<String>>,
     sort: SortColumn,
     description: bool,
     total: bool,
@@ -40,6 +42,7 @@ pub struct FileSize(i64);
 impl Report {
     pub fn new(
         pkgname_pattern: Option<String>,
+        exclude_pattern: Option<Vec<String>>,
         sort: SortColumn,
         description: bool,
         total: bool,
@@ -47,6 +50,7 @@ impl Report {
     ) -> Self {
         Self {
             pkgname_pattern,
+            exclude_pattern,
             pkgs: Vec::new(),
             sort,
             description,
@@ -62,7 +66,7 @@ impl Report {
         };
 
         // Apply PKGNAME_PATTERN
-        let installed_pkgs: Vec<Package> = match &self.pkgname_pattern {
+        let mut installed_pkgs: Vec<Package> = match &self.pkgname_pattern {
             Some(pkgname_regex) => {
                 let pkgname_filter = {
                     static RE: once_cell::sync::OnceCell<regex::Regex> =
@@ -80,6 +84,19 @@ impl Report {
             }
             None => alpm.localdb().pkgs().iter().collect(),
         };
+
+        // Apply EXCLUDE_PATTERN
+        if let Some(exclude_regex) = &self.exclude_pattern {
+            let exclude_filter_set: &RegexSet = {
+                static RE: once_cell::sync::OnceCell<regex::RegexSet> =
+                    once_cell::sync::OnceCell::new();
+                RE.get_or_try_init(|| regex::RegexSet::new(exclude_regex))
+                    .map_err(|err| anyhow!("{err:#?}"))
+                    .context("Failed to crate exclude filter")?
+            };
+
+            installed_pkgs.retain(|pkg| !exclude_filter_set.is_match(pkg.name()));
+        }
 
         // Load installed packages' info
         self.pkgs = installed_pkgs

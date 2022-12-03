@@ -7,6 +7,10 @@ pub struct Arguments {
     #[arg()]
     pub pkgname_pattern: Option<String>,
 
+    /// Specify the regular expression for excluding package name.
+    #[arg(long = "exclude", value_name = "PATTERN")]
+    pub exclude_pattern: Option<Vec<String>>,
+
     /// Change the default column to sort on
     #[arg(
         long,

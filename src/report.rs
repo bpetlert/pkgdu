@@ -130,7 +130,7 @@ impl std::fmt::Display for Report {
             .with(Modify::new(Columns::new(..)).with(Alignment::left()));
 
         if !self.description {
-            // FIXME: Why using ByColumnName with #[tabled(rename = "Description", order = 2)] does not work?
+            // RESEARCH: Why using ByColumnName with #[tabled(rename = "Description", order = 2)] does not work?
             // table.with(Disable::column(ByColumnName::new("Description")));
             table.with(Disable::column(Columns::single(2)));
         }

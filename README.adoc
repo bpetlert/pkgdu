@@ -11,6 +11,10 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
+image:https://img.shields.io/github/v/tag/bpetlert/pkgdu?include_prereleases&label=release&style=flat-square[Release,link=https://github.com/bpetlert/pkgdu/releases/latest]
+image:https://img.shields.io/aur/version/pkgdu?style=flat-square["AUR: pkgdu",link=https://aur.archlinux.org/packages/pkgdu/]
+image:https://img.shields.io/github/license/bpetlert/pkgdu?style=flat-square["License: GPL-3.0-or-later",link=./COPYING]
+
 *pkgdu* is a tool to display packages disk usage size for Arch Linux.
 
 toc::[]
@@ -29,6 +33,7 @@ To install in `$HOME/.cargo/bin`, run:
 $ cargo install --path .
 
 === Arch Linux
+*pkgdu* can be installed from https://aur.archlinux.org/packages/pkgdu[AUR].
 To build and install arch package from GIT source:
 
 [source,console]
@@ -96,6 +101,26 @@ $ pkgdu --description --total "^cargo-"
  2.84 MB     cargo-watch       Utility for Cargo to compile projects when sources change
  1.13 MB     cargo-bloat       Find out what takes most of the space in your executable
  172.46 MB   (TOTAL)
+----
+
+.How many packages and how much disk space required for installing `zstd`?
+[source,console]
+----
+$ pkgdu --total --recursive-depends-on "^zstd$"
+ 144.41 MB   gcc-libs
+ 49.66 MB    glibc
+ 8.59 MB     bash
+ 5.42 MB     linux-api-headers
+ 4.14 MB     iana-etc
+ 4.10 MB     ncurses
+ 2.14 MB     tzdata
+ 1.33 MB     xz
+ 1.24 MB     zstd
+ 774.82 kB   readline
+ 404.88 kB   lz4
+ 348.35 kB   zlib
+ 21.79 kB    filesystem
+ 222.60 MB   (TOTAL)
 ----
 
 == License

@@ -96,7 +96,7 @@ impl Report {
         };
 
         // Include all package dependencies required by the matching packages.
-        if self.recursive_depends_on {
+        if self.recursive_depends_on && self.pkgname_pattern.is_some() {
             let mut visited_deps: HashMap<String, bool> = installed_pkgs
                 .iter()
                 .map(|name| (name.clone(), false))

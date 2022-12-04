@@ -30,7 +30,7 @@ pub struct Arguments {
     pub description: bool,
 
     /// Display a grand total
-    #[arg(long, default_value_if("quiet", "true", "true"))]
+    #[arg(long)]
     pub total: bool,
 
     /// Show only a grand total. Do not show package's size report.

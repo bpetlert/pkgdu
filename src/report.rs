@@ -58,7 +58,7 @@ impl Report {
             pkgs: Vec::new(),
             sort,
             description,
-            total,
+            total: quiet || total,
             quiet,
         }
     }

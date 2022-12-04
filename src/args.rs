@@ -8,15 +8,16 @@ pub struct Arguments {
     pub pkgname_pattern: Option<String>,
 
     /// Specify the regular expression for excluding package name.
-    #[arg(long = "exclude", value_name = "PATTERN")]
+    #[arg(short = 'x', long = "exclude", value_name = "PATTERN")]
     pub exclude_pattern: Option<Vec<String>>,
 
     /// Include all package dependencies required by the matching packages.
-    #[arg(long)]
+    #[arg(short = 'r', long)]
     pub recursive_depends_on: bool,
 
     /// Change the default column to sort on
     #[arg(
+        short = 's',
         long,
         value_name = "COLUMN-[ASC|DESC]",
         value_enum,
@@ -26,15 +27,15 @@ pub struct Arguments {
     pub sort: SortColumn,
 
     /// Show package's description in report.
-    #[arg(long)]
+    #[arg(short = 'd', long)]
     pub description: bool,
 
     /// Display a grand total
-    #[arg(long)]
+    #[arg(short = 't', long)]
     pub total: bool,
 
     /// Show only a grand total. Do not show package's size report.
-    #[arg(long, conflicts_with_all = ["sort", "description", "total"])]
+    #[arg(short = 'q', long, conflicts_with_all = ["sort", "description", "total"])]
     pub quiet: bool,
 }
 

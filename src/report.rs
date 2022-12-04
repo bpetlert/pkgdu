@@ -126,9 +126,14 @@ impl Report {
                     let deps = pkg.depends();
                     for dep in deps {
                         match self.solve_dep(&alpm, &dep) {
-                            Ok(pkg_name) => {
-                                *new_deps.entry(pkg_name).or_insert(false) = true;
-                            }
+                            Ok(pkg_name) => match new_deps.entry(pkg_name) {
+                                std::collections::hash_map::Entry::Occupied(mut e) => {
+                                    e.insert(true);
+                                }
+                                std::collections::hash_map::Entry::Vacant(e) => {
+                                    e.insert(false);
+                                }
+                            },
                             Err(err) => {
                                 warn!("Failed to solve dependency of `{}`: {err:#}", dep.name())
                             }
@@ -214,6 +219,7 @@ impl Report {
             .iter()
             .find(|pkg| pkg.provides().iter().any(|d| d.name_hash() == name_hash))
         {
+            debug!("Found dependency package => `{}`", pkg.name());
             return Ok(pkg.name().to_string());
         } else {
             debug!("Cannot find dependency in `Provides` field");
@@ -221,7 +227,10 @@ impl Report {
 
         debug!("Try to solve dependency of `{dep:?}` using `Name` field");
         match alpm.localdb().pkg(dep.name()) {
-            Ok(pkg) => return Ok(pkg.name().to_string()),
+            Ok(pkg) => {
+                debug!("Found dependency package => `{}`", pkg.name());
+                return Ok(pkg.name().to_string());
+            }
             Err(err) => debug!("Cannot find dependency in `Name` field: {err:#}"),
         };
 

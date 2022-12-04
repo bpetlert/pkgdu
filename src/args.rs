@@ -11,6 +11,10 @@ pub struct Arguments {
     #[arg(long = "exclude", value_name = "PATTERN")]
     pub exclude_pattern: Option<Vec<String>>,
 
+    /// Include all package dependencies required by the matching packages.
+    #[arg(long)]
+    pub recursive_depends_on: bool,
+
     /// Change the default column to sort on
     #[arg(
         long,

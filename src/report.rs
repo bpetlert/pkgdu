@@ -1,7 +1,7 @@
-use std::cmp::Reverse;
+use std::{cmp::Reverse, collections::HashMap};
 
-use alpm::{Alpm, Package};
-use anyhow::{anyhow, Context, Result};
+use alpm::{Alpm, Dep};
+use anyhow::{anyhow, bail, Context, Result};
 use humansize::{format_size_i, FormatSizeOptions, DECIMAL};
 use pacmanconf::Config;
 use regex::{Regex, RegexSet};
@@ -9,6 +9,7 @@ use tabled::{
     object::{Columns, Rows},
     Alignment, Disable, Modify, Style, Table, Tabled,
 };
+use tracing::{debug, warn};
 
 use crate::args::SortColumn;
 
@@ -18,6 +19,7 @@ pub struct Report {
 
     pkgname_pattern: Option<String>,
     exclude_pattern: Option<Vec<String>>,
+    recursive_depends_on: bool,
     sort: SortColumn,
     description: bool,
     total: bool,
@@ -43,6 +45,7 @@ impl Report {
     pub fn new(
         pkgname_pattern: Option<String>,
         exclude_pattern: Option<Vec<String>>,
+        recursive_depends_on: bool,
         sort: SortColumn,
         description: bool,
         total: bool,
@@ -51,6 +54,7 @@ impl Report {
         Self {
             pkgname_pattern,
             exclude_pattern,
+            recursive_depends_on,
             pkgs: Vec::new(),
             sort,
             description,
@@ -66,7 +70,7 @@ impl Report {
         };
 
         // Apply PKGNAME_PATTERN
-        let mut installed_pkgs: Vec<Package> = match &self.pkgname_pattern {
+        let mut installed_pkgs: Vec<String> = match &self.pkgname_pattern {
             Some(pkgname_regex) => {
                 let pkgname_filter: &Regex = {
                     static RE: once_cell::sync::OnceCell<regex::Regex> =
@@ -80,10 +84,65 @@ impl Report {
                     .pkgs()
                     .iter()
                     .filter(|pkg| pkgname_filter.is_match(pkg.name()))
+                    .map(|pkg| pkg.name().to_owned())
                     .collect()
             }
-            None => alpm.localdb().pkgs().iter().collect(),
+            None => alpm
+                .localdb()
+                .pkgs()
+                .iter()
+                .map(|pkg| pkg.name().to_owned())
+                .collect(),
         };
+
+        // Include all package dependencies required by the matching packages.
+        if self.recursive_depends_on {
+            let mut visited_deps: HashMap<String, bool> = installed_pkgs
+                .iter()
+                .map(|name| (name.clone(), false))
+                .collect();
+
+            loop {
+                if visited_deps.iter().all(|(_, &visited)| visited) {
+                    // All deps are checked
+                    break;
+                }
+
+                let mut new_deps = visited_deps.clone();
+                for (name, visited) in &visited_deps {
+                    if *visited {
+                        continue;
+                    }
+
+                    let pkg = match alpm.localdb().pkg(&**name) {
+                        Ok(pkg) => pkg,
+                        Err(err) => {
+                            warn!("Failed to get info of package `{name}`: {err:#}");
+                            continue;
+                        }
+                    };
+
+                    // Solve all deps in "Depends On" field
+                    let deps = pkg.depends();
+                    for dep in deps {
+                        match self.solve_dep(&alpm, &dep) {
+                            Ok(pkg_name) => {
+                                *new_deps.entry(pkg_name).or_insert(false) = true;
+                            }
+                            Err(err) => {
+                                warn!("Failed to solve dependency of `{}`: {err:#}", dep.name())
+                            }
+                        }
+                    }
+
+                    // Mark as visited
+                    new_deps.insert(pkg.name().to_string(), true);
+                }
+                visited_deps = new_deps;
+            }
+
+            installed_pkgs = visited_deps.into_iter().map(|(name, _)| name).collect();
+        }
 
         // Apply EXCLUDE_PATTERN
         if let Some(exclude_regex) = &self.exclude_pattern {
@@ -95,16 +154,25 @@ impl Report {
                     .context("Failed to crate exclude filter")?
             };
 
-            installed_pkgs.retain(|pkg| !exclude_filter_set.is_match(pkg.name()));
+            installed_pkgs.retain(|name| !exclude_filter_set.is_match(name));
         }
 
         // Load installed packages' info
         self.pkgs = installed_pkgs
-            .iter()
-            .map(|pkg| PkgDiskUsage {
-                installed_size: FileSize(pkg.isize()),
-                name: pkg.name().to_owned(),
-                description: pkg.desc().unwrap_or("").to_owned(),
+            .into_iter()
+            .filter_map(|name| alpm.localdb().pkg(name).ok())
+            .map(|pkg| {
+                let description = if !self.description {
+                    "".to_string()
+                } else {
+                    pkg.desc().unwrap_or("").to_owned()
+                };
+
+                PkgDiskUsage {
+                    installed_size: FileSize(pkg.isize()),
+                    name: pkg.name().to_owned(),
+                    description,
+                }
             })
             .collect();
 
@@ -135,6 +203,29 @@ impl Report {
         }
 
         Ok(())
+    }
+
+    fn solve_dep(&self, alpm: &Alpm, dep: &Dep) -> Result<String> {
+        debug!("Try to solve dependency of `{dep:?}` using `Provides` field's name hash");
+        let name_hash = dep.name_hash();
+        if let Some(pkg) = alpm
+            .localdb()
+            .pkgs()
+            .iter()
+            .find(|pkg| pkg.provides().iter().any(|d| d.name_hash() == name_hash))
+        {
+            return Ok(pkg.name().to_string());
+        } else {
+            debug!("Cannot find dependency in `Provides` field");
+        }
+
+        debug!("Try to solve dependency of `{dep:?}` using `Name` field");
+        match alpm.localdb().pkg(dep.name()) {
+            Ok(pkg) => return Ok(pkg.name().to_string()),
+            Err(err) => debug!("Cannot find dependency in `Name` field: {err:#}"),
+        };
+
+        bail!("Cannot solve dependency of `{}`", dep.name());
     }
 }
 

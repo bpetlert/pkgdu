@@ -29,6 +29,7 @@ fn run() -> Result<()> {
     let mut report = Report::new(
         arguments.pkgname_pattern,
         arguments.exclude_pattern,
+        arguments.recursive_depends_on,
         arguments.sort,
         arguments.description,
         arguments.total,

@@ -123,8 +123,14 @@ impl Report {
                     };
 
                     // Solve all deps in "Depends On" field
+                    debug!("Try to Solve deps of `{name}`");
                     let deps = pkg.depends();
                     for dep in deps {
+                        if new_deps.contains_key(dep.name()) {
+                            continue;
+                        }
+
+                        debug!("Try to resolve `{dep:?}`");
                         match self.solve_dep(&alpm, &dep) {
                             Ok(pkg_name) => match new_deps.entry(pkg_name) {
                                 std::collections::hash_map::Entry::Occupied(_e) => {}
@@ -133,9 +139,7 @@ impl Report {
                                     e.insert(false);
                                 }
                             },
-                            Err(err) => {
-                                warn!("Failed to solve dependency of `{}`: {err:#}", dep.name())
-                            }
+                            Err(err) => warn!("{err:#}"),
                         }
                     }
 
@@ -210,30 +214,46 @@ impl Report {
     }
 
     fn solve_dep(&self, alpm: &Alpm, dep: &Dep) -> Result<String> {
-        debug!("Try to solve dependency of `{dep:?}` using `Provides` field's name hash");
-        let name_hash = dep.name_hash();
-        if let Some(pkg) = alpm
-            .localdb()
-            .pkgs()
-            .iter()
-            .find(|pkg| pkg.provides().iter().any(|d| d.name_hash() == name_hash))
-        {
-            debug!("Found dependency package => `{}`", pkg.name());
-            return Ok(pkg.name().to_string());
-        } else {
-            debug!("Cannot find dependency in `Provides` field");
-        }
+        // Search in `Provides` field
+        for pkg in alpm.localdb().pkgs() {
+            for provide in pkg.provides() {
+                if provide.name_hash() != dep.name_hash() {
+                    continue;
+                }
 
-        debug!("Try to solve dependency of `{dep:?}` using `Name` field");
+                if provide.version().is_none() {
+                    debug!("Found package in `Provides` field => `{}`", pkg.name());
+                    return Ok(pkg.name().to_string());
+                }
+
+                // Check version constraint
+                let pass: bool = match dep.depmod() {
+                    alpm::DepMod::Any => true,
+                    alpm::DepMod::Eq => provide.version().unwrap() == dep.version().unwrap(),
+                    alpm::DepMod::Ge => provide.version().unwrap() >= dep.version().unwrap(),
+                    alpm::DepMod::Le => provide.version().unwrap() <= dep.version().unwrap(),
+                    alpm::DepMod::Gt => provide.version().unwrap() > dep.version().unwrap(),
+                    alpm::DepMod::Lt => provide.version().unwrap() < dep.version().unwrap(),
+                };
+
+                if pass {
+                    debug!("Found package in `Provides` field => `{}`", pkg.name());
+                    return Ok(pkg.name().to_string());
+                }
+            }
+        }
+        debug!("Cannot find dependency in `Provides` field");
+
+        // Search in `Name` field
         match alpm.localdb().pkg(dep.name()) {
             Ok(pkg) => {
-                debug!("Found dependency package => `{}`", pkg.name());
+                debug!("Found package in `Name` field => `{}`", pkg.name());
                 return Ok(pkg.name().to_string());
             }
             Err(err) => debug!("Cannot find dependency in `Name` field: {err:#}"),
         };
 
-        bail!("Cannot solve dependency of `{}`", dep.name());
+        bail!("Cannot resolve `{}`", dep.name());
     }
 }
 

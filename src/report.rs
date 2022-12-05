@@ -127,10 +127,9 @@ impl Report {
                     for dep in deps {
                         match self.solve_dep(&alpm, &dep) {
                             Ok(pkg_name) => match new_deps.entry(pkg_name) {
-                                std::collections::hash_map::Entry::Occupied(mut e) => {
-                                    e.insert(true);
-                                }
+                                std::collections::hash_map::Entry::Occupied(_e) => {}
                                 std::collections::hash_map::Entry::Vacant(e) => {
+                                    // Mask new dep as unvisited
                                     e.insert(false);
                                 }
                             },

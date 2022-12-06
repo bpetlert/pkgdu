@@ -97,59 +97,7 @@ impl Report {
 
         // Include all package dependencies required by the matching packages.
         if self.recursive_depends_on && self.pkgname_pattern.is_some() {
-            let mut visited_deps: HashMap<String, bool> = installed_pkgs
-                .iter()
-                .map(|name| (name.clone(), false))
-                .collect();
-
-            loop {
-                if visited_deps.iter().all(|(_, &visited)| visited) {
-                    // All deps are checked
-                    break;
-                }
-
-                let mut new_deps = visited_deps.clone();
-                for (name, visited) in &visited_deps {
-                    if *visited {
-                        continue;
-                    }
-
-                    let pkg = match alpm.localdb().pkg(&**name) {
-                        Ok(pkg) => pkg,
-                        Err(err) => {
-                            warn!("Failed to get info of package `{name}`: {err:#}");
-                            continue;
-                        }
-                    };
-
-                    // Solve all deps in "Depends On" field
-                    debug!("Try to Solve deps of `{name}`");
-                    let deps = pkg.depends();
-                    for dep in deps {
-                        if new_deps.contains_key(dep.name()) {
-                            continue;
-                        }
-
-                        debug!("Try to resolve `{dep:?}`");
-                        match self.solve_dep(&alpm, &dep) {
-                            Ok(pkg_name) => match new_deps.entry(pkg_name) {
-                                std::collections::hash_map::Entry::Occupied(_e) => {}
-                                std::collections::hash_map::Entry::Vacant(e) => {
-                                    // Mask new dep as unvisited
-                                    e.insert(false);
-                                }
-                            },
-                            Err(err) => warn!("{err:#}"),
-                        }
-                    }
-
-                    // Mark as visited
-                    new_deps.insert(pkg.name().to_string(), true);
-                }
-                visited_deps = new_deps;
-            }
-
-            installed_pkgs = visited_deps.into_iter().map(|(name, _)| name).collect();
+            installed_pkgs = Report::recursive_deps(&alpm, &installed_pkgs)?;
         }
 
         // Apply EXCLUDE_PATTERN
@@ -213,7 +161,63 @@ impl Report {
         Ok(())
     }
 
-    fn solve_dep(&self, alpm: &Alpm, dep: &Dep) -> Result<String> {
+    /// Recursive resolve all package dependencies required by `pkgs`.
+    fn recursive_deps(alpm: &Alpm, pkgs: &[String]) -> Result<Vec<String>> {
+        let mut visited_deps: HashMap<String, bool> =
+            pkgs.iter().map(|name| (name.to_string(), false)).collect();
+
+        loop {
+            if visited_deps.iter().all(|(_, &visited)| visited) {
+                // All deps are checked
+                break;
+            }
+
+            let mut new_deps = visited_deps.clone();
+            for (name, visited) in &visited_deps {
+                if *visited {
+                    continue;
+                }
+
+                let pkg = match alpm.localdb().pkg(&**name) {
+                    Ok(pkg) => pkg,
+                    Err(err) => {
+                        warn!("Failed to get info of package `{name}`: {err:#}");
+                        continue;
+                    }
+                };
+
+                // Solve all deps in "Depends On" field
+                debug!("Try to Solve deps of `{name}`");
+                let deps = pkg.depends();
+                for dep in deps {
+                    if new_deps.contains_key(dep.name()) {
+                        continue;
+                    }
+
+                    debug!("Try to resolve `{dep:?}`");
+                    match Report::resolve_dep(alpm, &dep) {
+                        Ok(pkg_name) => match new_deps.entry(pkg_name) {
+                            std::collections::hash_map::Entry::Occupied(_e) => {}
+                            std::collections::hash_map::Entry::Vacant(e) => {
+                                // Mask new dep as unvisited
+                                e.insert(false);
+                            }
+                        },
+                        Err(err) => warn!("{err:#}"),
+                    }
+                }
+
+                // Mark as visited
+                new_deps.insert(pkg.name().to_string(), true);
+            }
+            visited_deps = new_deps;
+        }
+
+        Ok(visited_deps.into_iter().map(|(name, _)| name).collect())
+    }
+
+    /// Return package name of a dependency
+    fn resolve_dep(alpm: &Alpm, dep: &Dep) -> Result<String> {
         // Search in `Provides` field
         for pkg in alpm.localdb().pkgs() {
             for provide in pkg.provides() {
@@ -279,5 +283,55 @@ impl std::fmt::Display for FileSize {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let fmt = FormatSizeOptions::from(DECIMAL).space_after_value(true);
         write!(f, "{}", format_size_i(self.0, fmt))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::{BufRead, BufReader};
+
+    use duct::cmd;
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    // XXX: Test using `pactree` command for now
+    #[test]
+    fn test_recursive_deps() {
+        let alpm = {
+            let pacman_conf = Config::new()
+                .context("Failed to load `pacman.conf`")
+                .unwrap();
+            Alpm::new(pacman_conf.root_dir, pacman_conf.db_path)
+                .context("Could not access ALPM")
+                .unwrap()
+        };
+
+        for pkg in alpm.localdb().pkgs() {
+            let pkg = pkg.name();
+
+            // pactree --ascii [PKG_NAME] | sed -E "s/(\||\`)//g" | sed -E "s/^(\ |-)*//g" | sed -E "s/(=|<|>)/\ /g" | awk '{print $1}' | sort | uniq
+            let reader = cmd!("/usr/bin/pactree", "--ascii", pkg)
+                .pipe(cmd!("sed", "-E", r"s/(\||`)//g"))
+                .pipe(cmd!("sed", "-E", r"s/^(\ |-)*//g"))
+                .pipe(cmd!("sed", "-E", r"s/(=|<|>)/\ /g"))
+                .pipe(cmd!("awk", "{print $1}"))
+                .pipe(cmd!("sort"))
+                .pipe(cmd!("uniq"))
+                .stdout_capture()
+                .stderr_null()
+                .reader()
+                .unwrap();
+            let lines = BufReader::new(reader).lines();
+            let mut expected_deps: Vec<String> =
+                lines.into_iter().filter_map(|line| line.ok()).collect();
+            expected_deps.sort();
+            // println!("{expected_deps:#?}");
+
+            let mut resolved_deps = Report::recursive_deps(&alpm, &[pkg.to_string()]).unwrap();
+            resolved_deps.sort();
+
+            assert_eq!(resolved_deps, expected_deps, "Failed at `{pkg}`");
+        }
     }
 }

@@ -218,6 +218,15 @@ impl Report {
 
     /// Return package name of a dependency
     fn resolve_dep(alpm: &Alpm, dep: &Dep) -> Result<String> {
+        // Search in `Name` field
+        match alpm.localdb().pkg(dep.name()) {
+            Ok(pkg) => {
+                debug!("Found package in `Name` field => `{}`", pkg.name());
+                return Ok(pkg.name().to_string());
+            }
+            Err(err) => debug!("Cannot find dependency in `Name` field: {err:#}"),
+        };
+
         // Search in `Provides` field
         for pkg in alpm.localdb().pkgs() {
             for provide in pkg.provides() {
@@ -247,15 +256,6 @@ impl Report {
             }
         }
         debug!("Cannot find dependency in `Provides` field");
-
-        // Search in `Name` field
-        match alpm.localdb().pkg(dep.name()) {
-            Ok(pkg) => {
-                debug!("Found package in `Name` field => `{}`", pkg.name());
-                return Ok(pkg.name().to_string());
-            }
-            Err(err) => debug!("Cannot find dependency in `Name` field: {err:#}"),
-        };
 
         bail!("Cannot resolve `{}`", dep.name());
     }
@@ -288,16 +288,27 @@ impl std::fmt::Display for FileSize {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{BufRead, BufReader};
+    use std::io::{self, BufRead, BufReader};
 
     use duct::cmd;
     use pretty_assertions::assert_eq;
+    use tracing_subscriber::EnvFilter;
 
     use super::*;
 
     // XXX: Test using `pactree` command for now
+    #[ignore]
     #[test]
     fn test_recursive_deps() {
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| EnvFilter::try_new("pkgdu=warn").unwrap()),
+            )
+            .without_time()
+            .with_writer(io::stderr)
+            .init();
+
         let alpm = {
             let pacman_conf = Config::new()
                 .context("Failed to load `pacman.conf`")
@@ -309,6 +320,7 @@ mod tests {
 
         for pkg in alpm.localdb().pkgs() {
             let pkg = pkg.name();
+            debug!("===== TEST: {pkg} =====");
 
             // pactree --ascii [PKG_NAME] | sed -E "s/(\||\`)//g" | sed -E "s/^(\ |-)*//g" | sed -E "s/(=|<|>)/\ /g" | awk '{print $1}' | sort | uniq
             let reader = cmd!("/usr/bin/pactree", "--ascii", pkg)

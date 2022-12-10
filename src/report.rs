@@ -2,7 +2,7 @@ use std::{cmp::Reverse, collections::HashMap};
 
 use alpm::{Alpm, Dep};
 use anyhow::{anyhow, bail, Context, Result};
-use humansize::{format_size_i, FormatSizeOptions, DECIMAL};
+use humansize::{format_size_i, BINARY, DECIMAL};
 use pacmanconf::Config;
 use regex::{Regex, RegexSet};
 use tabled::{
@@ -11,7 +11,7 @@ use tabled::{
 };
 use tracing::{debug, warn};
 
-use crate::args::SortColumn;
+use crate::args::{Arguments, SortColumn};
 
 #[derive(Debug)]
 pub struct Report {
@@ -22,6 +22,7 @@ pub struct Report {
     recursive_depends_on: bool,
     sort: SortColumn,
     description: bool,
+    si_unit: bool,
     total: bool,
     quiet: bool,
 }
@@ -31,35 +32,42 @@ pub struct PkgDiskUsage {
     #[tabled(rename = "Name", order = 1)]
     name: String,
 
-    #[tabled(rename = "Installed Size", order = 0)]
-    installed_size: FileSize,
+    #[tabled(
+        rename = "Installed Size",
+        order = 0,
+        display_with("Self::display_installed_size", args)
+    )]
+    installed_size: i64,
 
     #[tabled(rename = "Description", order = 2)]
     description: String,
+
+    #[tabled(skip)]
+    si_unit: bool,
 }
 
-#[derive(Debug)]
-pub struct FileSize(i64);
+impl PkgDiskUsage {
+    fn display_installed_size(&self) -> String {
+        if self.si_unit {
+            format_size_i(self.installed_size, DECIMAL)
+        } else {
+            format_size_i(self.installed_size, BINARY)
+        }
+    }
+}
 
 impl Report {
-    pub fn new(
-        pkgname_pattern: Option<String>,
-        exclude_pattern: Option<Vec<String>>,
-        recursive_depends_on: bool,
-        sort: SortColumn,
-        description: bool,
-        total: bool,
-        quiet: bool,
-    ) -> Self {
+    pub fn new(options: Arguments) -> Self {
         Self {
-            pkgname_pattern,
-            exclude_pattern,
-            recursive_depends_on,
+            pkgname_pattern: options.pkgname_pattern,
+            exclude_pattern: options.exclude_pattern,
+            recursive_depends_on: options.recursive_depends_on,
             pkgs: Vec::new(),
-            sort,
-            description,
-            total: quiet || total,
-            quiet,
+            sort: options.sort,
+            description: options.description,
+            si_unit: options.si_unit,
+            total: options.quiet || options.total,
+            quiet: options.quiet,
         }
     }
 
@@ -125,22 +133,23 @@ impl Report {
                 };
 
                 PkgDiskUsage {
-                    installed_size: FileSize(pkg.isize()),
                     name: pkg.name().to_owned(),
+                    installed_size: pkg.isize(),
                     description,
+                    si_unit: self.si_unit,
                 }
             })
             .collect();
 
-        let total_size: i64 = self.pkgs.iter().map(|pkg| pkg.installed_size.0).sum();
+        let total_size: i64 = self.pkgs.iter().map(|pkg| pkg.installed_size).sum();
 
         // Sort report
         match self.sort {
             SortColumn::NameAscending => self.pkgs.sort_by_key(|k| k.name.clone()),
             SortColumn::NameDescending => self.pkgs.sort_by_key(|k| Reverse(k.name.clone())),
-            SortColumn::InstalledSizeAscending => self.pkgs.sort_by_key(|k| k.installed_size.0),
+            SortColumn::InstalledSizeAscending => self.pkgs.sort_by_key(|k| k.installed_size),
             SortColumn::InstalledSizeDescending => {
-                self.pkgs.sort_by_key(|k| Reverse(k.installed_size.0))
+                self.pkgs.sort_by_key(|k| Reverse(k.installed_size))
             }
         }
 
@@ -153,8 +162,9 @@ impl Report {
         if self.total {
             self.pkgs.push(PkgDiskUsage {
                 name: "(TOTAL)".to_string(),
-                installed_size: FileSize(total_size),
+                installed_size: total_size,
                 description: "".to_string(),
+                si_unit: self.si_unit,
             });
         }
 
@@ -276,13 +286,6 @@ impl std::fmt::Display for Report {
         }
 
         write!(f, "{table}")
-    }
-}
-
-impl std::fmt::Display for FileSize {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let fmt = FormatSizeOptions::from(DECIMAL).space_after_value(true);
-        write!(f, "{}", format_size_i(self.0, fmt))
     }
 }
 

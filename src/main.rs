@@ -26,15 +26,7 @@ fn run() -> Result<()> {
     let arguments = Arguments::parse();
     debug!("Run with {:?}", arguments);
 
-    let mut report = Report::new(
-        arguments.pkgname_pattern,
-        arguments.exclude_pattern,
-        arguments.recursive_depends_on,
-        arguments.sort,
-        arguments.description,
-        arguments.total,
-        arguments.quiet,
-    );
+    let mut report = Report::new(arguments);
     report
         .build()
         .context("Failed to calculate sum of file sizes for each installed packages")?;

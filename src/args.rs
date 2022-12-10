@@ -30,6 +30,10 @@ pub struct Arguments {
     #[arg(short = 'd', long)]
     pub description: bool,
 
+    /// List sizes powers of 1000
+    #[arg(long = "si")]
+    pub si_unit: bool,
+
     /// Display a grand total
     #[arg(short = 't', long)]
     pub total: bool,

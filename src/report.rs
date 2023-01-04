@@ -223,7 +223,7 @@ impl Report {
             visited_deps = new_deps;
         }
 
-        Ok(visited_deps.into_iter().map(|(name, _)| name).collect())
+        Ok(visited_deps.into_keys().collect())
     }
 
     /// Return package name of a dependency

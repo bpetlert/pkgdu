@@ -176,32 +176,32 @@ impl Report {
         let mut visited_deps: HashMap<String, bool> =
             pkgs.iter().map(|name| (name.to_string(), false)).collect();
 
-        loop {
+        'check_all_deps: loop {
             if visited_deps.iter().all(|(_, &visited)| visited) {
                 // All deps are checked
-                break;
+                break 'check_all_deps;
             }
 
             let mut new_deps = visited_deps.clone();
-            for (name, visited) in &visited_deps {
+            'check_unvisited: for (name, visited) in &visited_deps {
                 if *visited {
-                    continue;
+                    continue 'check_unvisited;
                 }
 
                 let pkg = match alpm.localdb().pkg(&**name) {
                     Ok(pkg) => pkg,
                     Err(err) => {
                         warn!("Failed to get info of package `{name}`: {err:#}");
-                        continue;
+                        continue 'check_unvisited;
                     }
                 };
 
                 // Solve all deps in "Depends On" field
                 debug!("Try to Solve deps of `{name}`");
                 let deps = pkg.depends();
-                for dep in deps {
+                'solve_depends_on: for dep in deps {
                     if new_deps.contains_key(dep.name()) {
-                        continue;
+                        continue 'solve_depends_on;
                     }
 
                     debug!("Try to resolve `{dep:?}`");
@@ -238,10 +238,10 @@ impl Report {
         };
 
         // Search in `Provides` field
-        for pkg in alpm.localdb().pkgs() {
+        'search_in_provides: for pkg in alpm.localdb().pkgs() {
             for provide in pkg.provides() {
                 if provide.name_hash() != dep.name_hash() {
-                    continue;
+                    continue 'search_in_provides;
                 }
 
                 if provide.version().is_none() {

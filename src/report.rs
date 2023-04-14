@@ -6,8 +6,12 @@ use humansize::{format_size_i, BINARY, DECIMAL};
 use pacmanconf::Config;
 use regex::{Regex, RegexSet};
 use tabled::{
-    object::{Columns, Rows},
-    Alignment, Disable, Modify, Style, Table, Tabled,
+    settings::{
+        locator::ByColumnName,
+        object::{Columns, Rows},
+        Alignment, Disable, Modify, Style,
+    },
+    Table, Tabled,
 };
 use tracing::{debug, warn};
 
@@ -35,7 +39,7 @@ pub struct PkgDiskUsage {
     #[tabled(
         rename = "Installed Size",
         order = 0,
-        display_with("Self::display_installed_size", args)
+        display_with("Self::display_installed_size", self)
     )]
     installed_size: i64,
 
@@ -280,9 +284,7 @@ impl std::fmt::Display for Report {
             .with(Modify::new(Columns::new(..)).with(Alignment::left()));
 
         if !self.description {
-            // RESEARCH: Why using ByColumnName with #[tabled(rename = "Description", order = 2)] does not work?
-            // table.with(Disable::column(ByColumnName::new("Description")));
-            table.with(Disable::column(Columns::single(2)));
+            table.with(Disable::column(ByColumnName::new("Description")));
         }
 
         write!(f, "{table}")

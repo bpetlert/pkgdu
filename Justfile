@@ -11,6 +11,9 @@ run-debug +ARGS='':
 test +CASES='':
   RUST_BACKTRACE=1 RUST_LOG=pkgdu=debug cargo test -- {{CASES}}
 
+test-ignored:
+  RUST_BACKTRACE=1 RUST_LOG=pkgdu=debug cargo test -- --ignored
+
 # Increase semver
 bump-version VERSION:
   just _bump-cargo {{VERSION}}

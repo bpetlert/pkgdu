@@ -340,8 +340,7 @@ mod tests {
                 .reader()
                 .unwrap();
             let lines = BufReader::new(reader).lines();
-            let mut expected_deps: Vec<String> =
-                lines.into_iter().filter_map(|line| line.ok()).collect();
+            let mut expected_deps: Vec<String> = lines.into_iter().map_while(Result::ok).collect();
             expected_deps.sort();
             // println!("{expected_deps:#?}");
 

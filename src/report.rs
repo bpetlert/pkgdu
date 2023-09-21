@@ -357,17 +357,15 @@ mod tests {
     #[test]
     fn test_recursive_deps_all() {
         // Only show logging if set RUST_LOG=pkgdu=debug
-        if let Ok(rust_log) = std::env::var("RUST_LOG") {
-            if rust_log == "pkgdu=debug" {
-                tracing_subscriber::fmt()
-                    .with_env_filter(
-                        EnvFilter::try_from_default_env()
-                            .unwrap_or_else(|_| EnvFilter::try_new("pkgdu=debug").unwrap()),
-                    )
-                    .without_time()
-                    .with_writer(io::stderr)
-                    .init();
-            }
+        if Ok("pkgdu=debug".to_owned()) == std::env::var("RUST_LOG") {
+            tracing_subscriber::fmt()
+                .with_env_filter(
+                    EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| EnvFilter::try_new("pkgdu=debug").unwrap()),
+                )
+                .without_time()
+                .with_writer(io::stderr)
+                .init();
         }
 
         let alpm = init_alpm();
@@ -382,17 +380,15 @@ mod tests {
     #[test]
     fn test_recursive_deps_of_akonadi_contacts() {
         // Only show logging if set RUST_LOG=pkgdu=debug
-        if let Ok(rust_log) = std::env::var("RUST_LOG") {
-            if rust_log == "pkgdu=debug" {
-                tracing_subscriber::fmt()
-                    .with_env_filter(
-                        EnvFilter::try_from_default_env()
-                            .unwrap_or_else(|_| EnvFilter::try_new("pkgdu=debug").unwrap()),
-                    )
-                    .without_time()
-                    .with_writer(io::stderr)
-                    .init();
-            }
+        if Ok("pkgdu=debug".to_owned()) == std::env::var("RUST_LOG") {
+            tracing_subscriber::fmt()
+                .with_env_filter(
+                    EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| EnvFilter::try_new("pkgdu=debug").unwrap()),
+                )
+                .without_time()
+                .with_writer(io::stderr)
+                .init();
         }
 
         let alpm = init_alpm();

@@ -249,8 +249,8 @@ impl Report {
         };
 
         // Search in `Provides` field
-        'search_in_provides: for pkg in alpm.localdb().pkgs() {
-            for provide in pkg.provides() {
+        for pkg in alpm.localdb().pkgs() {
+            'search_in_provides: for provide in pkg.provides() {
                 if provide.name_hash() != dep.name_hash() {
                     continue 'search_in_provides;
                 }

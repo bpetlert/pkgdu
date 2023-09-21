@@ -235,10 +235,17 @@ impl Report {
         // Search in `Name` field
         match alpm.localdb().pkg(dep.name()) {
             Ok(pkg) => {
-                debug!("Found package in `Name` field => `{}`", pkg.name());
+                debug!(
+                    "Found package in `Name` field for {} => `{}`",
+                    dep.name(),
+                    pkg.name()
+                );
                 return Ok(pkg.name().to_string());
             }
-            Err(err) => debug!("Cannot find dependency in `Name` field: {err:#}"),
+            Err(err) => debug!(
+                "Cannot find dependency in `Name` field for {}: {err:#}",
+                dep.name()
+            ),
         };
 
         // Search in `Provides` field
@@ -249,7 +256,11 @@ impl Report {
                 }
 
                 if provide.version().is_none() {
-                    debug!("Found package in `Provides` field => `{}`", pkg.name());
+                    debug!(
+                        "Found package in `Provides` field for {} => `{}`",
+                        dep.name(),
+                        pkg.name()
+                    );
                     return Ok(pkg.name().to_string());
                 }
 
@@ -264,12 +275,19 @@ impl Report {
                 };
 
                 if pass {
-                    debug!("Found package in `Provides` field => `{}`", pkg.name());
+                    debug!(
+                        "Found package in `Provides` field for {} => `{}`",
+                        dep.name(),
+                        pkg.name()
+                    );
                     return Ok(pkg.name().to_string());
                 }
             }
         }
-        debug!("Cannot find dependency in `Provides` field");
+        debug!(
+            "Cannot find dependency in `Provides` field for {}",
+            dep.name()
+        );
 
         bail!("Cannot resolve `{}`", dep.name());
     }

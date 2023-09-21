@@ -301,53 +301,84 @@ mod tests {
 
     use super::*;
 
-    // XXX: Test using `pactree` command for now
+    fn init_alpm() -> Alpm {
+        let pacman_conf = Config::new()
+            .context("Failed to load `pacman.conf`")
+            .unwrap();
+        Alpm::new(pacman_conf.root_dir, pacman_conf.db_path)
+            .context("Could not access ALPM")
+            .unwrap()
+    }
+
+    fn recursive_deps_of(pkg: &str, alpm: &Alpm) {
+        // pactree --ascii [PKG_NAME] | sed -E "s/(\||\`)//g" | sed -E "s/^(\ |-)*//g" | sed -E "s/(=|<|>)/\ /g" | awk '{print $1}' | sort | uniq
+        let reader = cmd!("/usr/bin/pactree", "--ascii", pkg)
+            .pipe(cmd!("sed", "-E", r"s/(\||`)//g"))
+            .pipe(cmd!("sed", "-E", r"s/^(\ |-)*//g"))
+            .pipe(cmd!("sed", "-E", r"s/(=|<|>)/\ /g"))
+            .pipe(cmd!("awk", "{print $1}"))
+            .pipe(cmd!("sort"))
+            .pipe(cmd!("uniq"))
+            .stdout_capture()
+            .stderr_null()
+            .reader()
+            .unwrap();
+        let lines = BufReader::new(reader).lines();
+        let mut expected_deps: Vec<String> = lines.into_iter().map_while(Result::ok).collect();
+        expected_deps.sort();
+        // println!("{expected_deps:#?}");
+
+        let mut resolved_deps = Report::recursive_deps(alpm, &[pkg.to_string()]).unwrap();
+        resolved_deps.sort();
+
+        assert_eq!(resolved_deps, expected_deps, "Failed at `{pkg}`");
+    }
+
+    // XXX: Test using `pactree` command
     #[ignore]
     #[test]
-    fn test_recursive_deps() {
-        tracing_subscriber::fmt()
-            .with_env_filter(
-                EnvFilter::try_from_default_env()
-                    .unwrap_or_else(|_| EnvFilter::try_new("pkgdu=warn").unwrap()),
-            )
-            .without_time()
-            .with_writer(io::stderr)
-            .init();
+    fn test_recursive_deps_all() {
+        // Only show logging if set RUST_LOG=pkgdu=debug
+        if let Ok(rust_log) = std::env::var("RUST_LOG") {
+            if rust_log == "pkgdu=debug" {
+                tracing_subscriber::fmt()
+                    .with_env_filter(
+                        EnvFilter::try_from_default_env()
+                            .unwrap_or_else(|_| EnvFilter::try_new("pkgdu=debug").unwrap()),
+                    )
+                    .without_time()
+                    .with_writer(io::stderr)
+                    .init();
+            }
+        }
 
-        let alpm = {
-            let pacman_conf = Config::new()
-                .context("Failed to load `pacman.conf`")
-                .unwrap();
-            Alpm::new(pacman_conf.root_dir, pacman_conf.db_path)
-                .context("Could not access ALPM")
-                .unwrap()
-        };
+        let alpm = init_alpm();
 
         for pkg in alpm.localdb().pkgs() {
             let pkg = pkg.name();
             debug!("===== TEST: {pkg} =====");
-
-            // pactree --ascii [PKG_NAME] | sed -E "s/(\||\`)//g" | sed -E "s/^(\ |-)*//g" | sed -E "s/(=|<|>)/\ /g" | awk '{print $1}' | sort | uniq
-            let reader = cmd!("/usr/bin/pactree", "--ascii", pkg)
-                .pipe(cmd!("sed", "-E", r"s/(\||`)//g"))
-                .pipe(cmd!("sed", "-E", r"s/^(\ |-)*//g"))
-                .pipe(cmd!("sed", "-E", r"s/(=|<|>)/\ /g"))
-                .pipe(cmd!("awk", "{print $1}"))
-                .pipe(cmd!("sort"))
-                .pipe(cmd!("uniq"))
-                .stdout_capture()
-                .stderr_null()
-                .reader()
-                .unwrap();
-            let lines = BufReader::new(reader).lines();
-            let mut expected_deps: Vec<String> = lines.into_iter().map_while(Result::ok).collect();
-            expected_deps.sort();
-            // println!("{expected_deps:#?}");
-
-            let mut resolved_deps = Report::recursive_deps(&alpm, &[pkg.to_string()]).unwrap();
-            resolved_deps.sort();
-
-            assert_eq!(resolved_deps, expected_deps, "Failed at `{pkg}`");
+            recursive_deps_of(pkg, &alpm);
         }
+    }
+
+    #[test]
+    fn test_recursive_deps_of_akonadi_contacts() {
+        // Only show logging if set RUST_LOG=pkgdu=debug
+        if let Ok(rust_log) = std::env::var("RUST_LOG") {
+            if rust_log == "pkgdu=debug" {
+                tracing_subscriber::fmt()
+                    .with_env_filter(
+                        EnvFilter::try_from_default_env()
+                            .unwrap_or_else(|_| EnvFilter::try_new("pkgdu=debug").unwrap()),
+                    )
+                    .without_time()
+                    .with_writer(io::stderr)
+                    .init();
+            }
+        }
+
+        let alpm = init_alpm();
+        let pkg = "akonadi-contacts";
+        recursive_deps_of(pkg, &alpm);
     }
 }

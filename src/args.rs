@@ -3,13 +3,19 @@ use clap::Parser;
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Arguments {
-    /// Specify the regular expression for matching package name.
+    /// Specify the glob pattern or regular expression for matching package name.
+    /// Default is glob pattern. The pattern mode can be selected using --regex option.
     #[arg()]
     pub pkgname_pattern: Option<String>,
 
-    /// Specify the regular expression for excluding package name.
+    /// Specify the glob pattern or regular expression for excluding package name.
+    /// Default is glob pattern. The pattern mode can be selected using --regex option.
     #[arg(short = 'x', long = "exclude", value_name = "PATTERN")]
     pub exclude_pattern: Option<Vec<String>>,
+
+    /// Use regular expression for matching package name
+    #[arg(long)]
+    pub regex: bool,
 
     /// Include all package dependencies required by the matching packages.
     #[arg(short = 'r', long)]

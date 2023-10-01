@@ -18,6 +18,7 @@ publish = false
 alpm = "2.2.2"
 anyhow = "1.0.75"
 clap = { version = "4.4.6", features = ["derive"] }
+globset = "0.4.13"
 humansize = "2.1.3"
 once_cell = "1.18.0"
 pacmanconf = "2.0.0"

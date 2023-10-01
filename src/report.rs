@@ -2,6 +2,7 @@ use std::{cmp::Reverse, collections::HashMap};
 
 use alpm::{Alpm, Dep};
 use anyhow::{anyhow, bail, Context, Result};
+use globset::{Glob, GlobSet, GlobSetBuilder};
 use humansize::{format_size_i, BINARY, DECIMAL};
 use pacmanconf::Config;
 use regex::{Regex, RegexSet};
@@ -23,6 +24,7 @@ pub struct Report {
 
     pkgname_pattern: Option<String>,
     exclude_pattern: Option<Vec<String>>,
+    regex: bool,
     recursive_depends_on: bool,
     sort: SortColumn,
     description: bool,
@@ -65,6 +67,7 @@ impl Report {
         Self {
             pkgname_pattern: options.pkgname_pattern,
             exclude_pattern: options.exclude_pattern,
+            regex: options.regex,
             recursive_depends_on: options.recursive_depends_on,
             pkgs: Vec::new(),
             sort: options.sort,
@@ -83,21 +86,32 @@ impl Report {
 
         // Apply PKGNAME_PATTERN
         let mut installed_pkgs: Vec<String> = match &self.pkgname_pattern {
-            Some(pkgname_regex) => {
-                let pkgname_filter: &Regex = {
-                    static RE: once_cell::sync::OnceCell<regex::Regex> =
-                        once_cell::sync::OnceCell::new();
-                    RE.get_or_try_init(|| regex::Regex::new(pkgname_regex))
-                        .map_err(|err| anyhow!("{err:#?}"))
-                        .context("Failed to crate package name filter")?
-                };
+            Some(pkgname_pattern) => {
+                if self.regex {
+                    let pkgname_filter: &Regex = {
+                        static RE: once_cell::sync::OnceCell<regex::Regex> =
+                            once_cell::sync::OnceCell::new();
+                        RE.get_or_try_init(|| regex::Regex::new(pkgname_pattern))
+                            .map_err(|err| anyhow!("{err:#?}"))
+                            .context("Failed to crate package name filter")?
+                    };
 
-                alpm.localdb()
-                    .pkgs()
-                    .iter()
-                    .filter(|pkg| pkgname_filter.is_match(pkg.name()))
-                    .map(|pkg| pkg.name().to_owned())
-                    .collect()
+                    alpm.localdb()
+                        .pkgs()
+                        .iter()
+                        .filter(|pkg| pkgname_filter.is_match(pkg.name()))
+                        .map(|pkg| pkg.name().to_owned())
+                        .collect()
+                } else {
+                    let pkgname_filter = Glob::new(pkgname_pattern)?.compile_matcher();
+
+                    alpm.localdb()
+                        .pkgs()
+                        .iter()
+                        .filter(|pkg| pkgname_filter.is_match(pkg.name()))
+                        .map(|pkg| pkg.name().to_owned())
+                        .collect()
+                }
             }
             None => alpm
                 .localdb()
@@ -113,16 +127,30 @@ impl Report {
         }
 
         // Apply EXCLUDE_PATTERN
-        if let Some(exclude_regex) = &self.exclude_pattern {
-            let exclude_filter_set: &RegexSet = {
-                static RE: once_cell::sync::OnceCell<regex::RegexSet> =
-                    once_cell::sync::OnceCell::new();
-                RE.get_or_try_init(|| regex::RegexSet::new(exclude_regex))
-                    .map_err(|err| anyhow!("{err:#?}"))
-                    .context("Failed to crate exclude filter")?
-            };
+        if let Some(exclude_pattern) = &self.exclude_pattern {
+            if self.regex {
+                let exclude_filter_set: &RegexSet = {
+                    static RE: once_cell::sync::OnceCell<regex::RegexSet> =
+                        once_cell::sync::OnceCell::new();
+                    RE.get_or_try_init(|| regex::RegexSet::new(exclude_pattern))
+                        .map_err(|err| anyhow!("{err:#?}"))
+                        .context("Failed to crate exclude filter")?
+                };
 
-            installed_pkgs.retain(|name| !exclude_filter_set.is_match(name));
+                installed_pkgs.retain(|name| !exclude_filter_set.is_match(name));
+            } else {
+                let exclude_filter_set: GlobSet = {
+                    let mut builder = GlobSetBuilder::new();
+
+                    for pattern in exclude_pattern {
+                        builder.add(Glob::new(pattern)?);
+                    }
+
+                    builder.build()?
+                };
+
+                installed_pkgs.retain(|name| !exclude_filter_set.is_match(name));
+            }
         }
 
         // Load installed packages' info

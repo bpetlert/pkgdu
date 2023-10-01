@@ -83,10 +83,10 @@ $ pkgdu --quiet --si
  29.96 GB   (TOTAL)
 ----
 
-.Filter package name using regular expression
+.Filter package name using glob pettern
 [source,console]
 ----
-$ pkgdu --description --total --si "^cargo-"
+$ pkgdu --description --total --si "cargo-*"
  71.28 MB    cargo-c           A cargo subcommand to build and install C-ABI compatibile dynamic and static libraries
  20.41 MB    cargo-make        Rust task runner and build tool
  15.15 MB    cargo-binutils    Cargo subcommands to invoke the LLVM tools shipped with the Rust toolchain
@@ -106,7 +106,7 @@ $ pkgdu --description --total --si "^cargo-"
 .How many packages and how much disk space required for installing `zstd`?
 [source,console]
 ----
-$ pkgdu --total --si --recursive-depends-on "^zstd$"
+$ pkgdu --total --si --recursive-depends-on "zstd"
  144.41 MB   gcc-libs
  49.66 MB    glibc
  8.59 MB     bash

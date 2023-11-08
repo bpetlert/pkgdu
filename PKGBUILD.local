@@ -8,8 +8,6 @@ url="https://github.com/bpetlert/pkgdu"
 license=('GPL-3.0-or-later')
 depends=(pacman)
 makedepends=(cargo)
-provides=("${pkgname}")
-conflicts=("${pkgname}")
 
 # Build from local directory
 source=()

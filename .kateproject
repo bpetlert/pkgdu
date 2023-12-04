@@ -1,0 +1,11 @@
+{
+    "name": "pkgdu",
+    "files": [
+        {
+            "git": 1
+        }
+    ],
+    "exclude_patterns": [
+        ".vscode"
+    ]
+}

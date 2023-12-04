@@ -29,5 +29,4 @@ package() {
   install -Dm755 "target/release/pkgdu" "$pkgdir/usr/bin/pkgdu"
 
   install -Dm644 "README.adoc" "$pkgdir/usr/share/doc/${pkgname}/README.adoc"
-  install -Dm644 "COPYING" "$pkgdir/usr/share/licenses/${pkgname}/COPYING"
 }

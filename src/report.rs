@@ -8,7 +8,7 @@ use pacmanconf::Config;
 use regex::{Regex, RegexSet};
 use tabled::{
     settings::{
-        locator::ByColumnName,
+        location::ByColumnName,
         object::{Columns, Rows},
         Alignment, Disable, Modify, Style,
     },
@@ -237,7 +237,7 @@ impl Report {
                     }
 
                     debug!("Try to resolve `{dep:?}`");
-                    match Report::resolve_dep(alpm, &dep) {
+                    match Report::resolve_dep(alpm, dep) {
                         Ok(pkg_name) => match new_deps.entry(pkg_name) {
                             std::collections::hash_map::Entry::Occupied(_e) => {}
                             std::collections::hash_map::Entry::Vacant(e) => {

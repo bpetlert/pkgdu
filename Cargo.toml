@@ -15,25 +15,25 @@ edition = "2021"
 publish = false
 
 [dependencies]
-alpm = "3.0.5"
-anyhow = "1.0.81"
-clap = { version = "4.5.3", features = ["derive"] }
-globset = "0.4.14"
-humansize = "2.1.3"
-once_cell = "1.19.0"
-pacmanconf = "2.1.0"
-regex = "1.10.3"
-tabled = "0.15.0"
-tracing = { version = "0.1.40", features = [
+alpm = "~3"
+anyhow = "~1"
+clap = { version = "~4.5", features = ["derive"] }
+globset = "~0.4"
+humansize = "~2.1"
+once_cell = "~1.19"
+pacmanconf = "~2.1"
+regex = "~1.10"
+tabled = "~0.15"
+tracing = { version = "~0.1", features = [
     "max_level_debug",
     "release_max_level_debug",
 ] }
-tracing-subscriber = { version = "0.3.18", default-features = false, features = [
+tracing-subscriber = { version = "~0.3", default-features = false, features = [
     "ansi",
     "env-filter",
     "fmt",
 ] }
 
 [dev-dependencies]
-duct = "0.13.7"
-pretty_assertions = "1.4.0"
+duct = "~0.13"
+pretty_assertions = "~1.4"

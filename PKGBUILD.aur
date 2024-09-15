@@ -14,14 +14,15 @@ b2sums=('1d628b44f119279316077021913cab13f7b4062820ee2190f425cd019d66e96d2453a59
 
 prepare() {
   cd "${pkgname}-${pkgver}"
-  cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
 }
 
 build() {
   cd "${pkgname}-${pkgver}"
   export RUSTUP_TOOLCHAIN=stable
   export CARGO_TARGET_DIR=target
-  cargo build  --frozen --release
+  cargo build --frozen --release
 }
 
 package() {

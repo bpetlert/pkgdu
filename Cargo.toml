@@ -1,6 +1,6 @@
 [package]
 name = "pkgdu"
-version = "0.9.1"
+version = "0.9.2"
 edition = "2021"
 description = "A tool to display packages disk usage size"
 documentation = "https://github.com/bpetlert/pkgdu"

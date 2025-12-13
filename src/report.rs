@@ -1,22 +1,57 @@
-use std::{cmp::Reverse, collections::HashMap};
-
-use alpm::{Alpm, Dep};
-use anyhow::{anyhow, bail, Context, Result};
-use globset::{Glob, GlobSet, GlobSetBuilder};
-use humansize::{format_size_i, BINARY, DECIMAL};
-use pacmanconf::Config;
-use regex::{Regex, RegexSet};
-use tabled::{
-    settings::{
-        location::ByColumnName,
-        object::{Columns, Rows},
-        Alignment, Disable, Modify, Style,
-    },
-    Table, Tabled,
+use std::{
+    cmp::Reverse,
+    collections::HashMap,
 };
-use tracing::{debug, warn};
 
-use crate::args::{Arguments, SortColumn};
+use alpm::{
+    Alpm,
+    Dep,
+};
+use anyhow::{
+    Context,
+    Result,
+    anyhow,
+    bail,
+};
+use globset::{
+    Glob,
+    GlobSet,
+    GlobSetBuilder,
+};
+use humansize::{
+    BINARY,
+    DECIMAL,
+    format_size_i,
+};
+use pacmanconf::Config;
+use regex::{
+    Regex,
+    RegexSet,
+};
+use tabled::{
+    Table,
+    Tabled,
+    settings::{
+        Alignment,
+        Modify,
+        Remove,
+        Style,
+        location::ByColumnName,
+        object::{
+            Columns,
+            Rows,
+        },
+    },
+};
+use tracing::{
+    debug,
+    warn,
+};
+
+use crate::args::{
+    Arguments,
+    SortColumn,
+};
 
 #[derive(Debug)]
 pub struct Report {
@@ -33,33 +68,11 @@ pub struct Report {
     quiet: bool,
 }
 
-#[derive(Debug, Tabled)]
+#[derive(Clone, Debug)]
 pub struct PkgDiskUsage {
-    #[tabled(rename = "Name", order = 1)]
     name: String,
-
-    #[tabled(
-        rename = "Installed Size",
-        order = 0,
-        display_with("Self::display_installed_size", self)
-    )]
     installed_size: i64,
-
-    #[tabled(rename = "Description", order = 2)]
     description: String,
-
-    #[tabled(skip)]
-    si_unit: bool,
-}
-
-impl PkgDiskUsage {
-    fn display_installed_size(&self) -> String {
-        if self.si_unit {
-            format_size_i(self.installed_size, DECIMAL)
-        } else {
-            format_size_i(self.installed_size, BINARY)
-        }
-    }
 }
 
 impl Report {
@@ -168,7 +181,6 @@ impl Report {
                     name: pkg.name().to_owned(),
                     installed_size: pkg.isize(),
                     description,
-                    si_unit: self.si_unit,
                 }
             })
             .collect();
@@ -196,7 +208,6 @@ impl Report {
                 name: "(TOTAL)".to_string(),
                 installed_size: total_size,
                 description: "".to_string(),
-                si_unit: self.si_unit,
             });
         }
 
@@ -323,14 +334,41 @@ impl Report {
 
 impl std::fmt::Display for Report {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut table = Table::new(&self.pkgs);
+        #[derive(Tabled)]
+        struct PkgDiskUsageTable {
+            #[tabled(rename = "Name", order = 1)]
+            name: String,
+
+            #[tabled(rename = "Installed Size", order = 0)]
+            installed_size: String,
+
+            #[tabled(rename = "Description", order = 2)]
+            description: String,
+        }
+
+        let usage_table: Vec<PkgDiskUsageTable> = self
+            .pkgs
+            .clone()
+            .into_iter()
+            .map(|rec| PkgDiskUsageTable {
+                name: rec.name,
+                installed_size: if self.si_unit {
+                    format_size_i(rec.installed_size, DECIMAL)
+                } else {
+                    format_size_i(rec.installed_size, BINARY)
+                },
+                description: rec.description,
+            })
+            .collect();
+
+        let mut table = Table::new(usage_table);
         table
             .with(Style::blank())
-            .with(Disable::row(Rows::first())) // No headers
+            .with(Remove::row(Rows::first())) // No headers
             .with(Modify::new(Columns::new(..)).with(Alignment::left()));
 
         if !self.description {
-            table.with(Disable::column(ByColumnName::new("Description")));
+            table.with(Remove::column(ByColumnName::new("Description")));
         }
 
         write!(f, "{table}")
@@ -339,7 +377,11 @@ impl std::fmt::Display for Report {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{self, BufRead, BufReader};
+    use std::io::{
+        self,
+        BufRead,
+        BufReader,
+    };
 
     use duct::cmd;
     use pretty_assertions::assert_eq;

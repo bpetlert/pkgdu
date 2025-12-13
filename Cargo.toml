@@ -1,39 +1,35 @@
 [package]
 name = "pkgdu"
 version = "0.9.1"
-
-authors = ["Bhanupong Petchlert <bpetlert@gmail.com>"]
-
+edition = "2021"
 description = "A tool to display packages disk usage size"
 documentation = "https://github.com/bpetlert/pkgdu"
-homepage = "https://github.com/bpetlert/pkgdu"
-license = "GPL-3.0-or-later"
 readme = "README.adoc"
+homepage = "https://github.com/bpetlert/pkgdu"
 repository = "https://github.com/bpetlert/pkgdu"
-
-edition = "2021"
+license = "GPL-3.0-or-later"
 publish = false
 
 [dependencies]
-alpm = "~4"
+alpm = "~5"
 anyhow = "~1"
 clap = { version = "~4.5", features = ["derive"] }
 globset = "~0.4"
 humansize = "~2.1"
-once_cell = "~1.20"
+once_cell = "~1"
 pacmanconf = "~3"
-regex = "~1.10"
-tabled = "~0.16"
+regex = "~1"
+tabled = "~0.20"
 tracing = { version = "~0.1", features = [
-    "max_level_debug",
-    "release_max_level_debug",
+  "max_level_debug",
+  "release_max_level_debug",
 ] }
 tracing-subscriber = { version = "~0.3", default-features = false, features = [
-    "ansi",
-    "env-filter",
-    "fmt",
+  "ansi",
+  "env-filter",
+  "fmt",
 ] }
 
 [dev-dependencies]
-duct = "~0.13"
+duct = "~1"
 pretty_assertions = "~1.4"

@@ -10,24 +10,23 @@ depends=(libalpm.so)
 makedepends=(cargo)
 
 source=("${pkgname}-${pkgver}.tar.gz::https://github.com/bpetlert/${pkgname}/archive/${pkgver}.tar.gz")
-b2sums=('1d628b44f119279316077021913cab13f7b4062820ee2190f425cd019d66e96d2453a5929473f8880b3eab765189a084e24ac6ae49c59c1f9c439f6f3d71620b')
+b2sums=('df1734177bc82113416af36f04590e0b6a168bb63353b3e208028e713741a035d6d11969710120892f3d5df18da5e2590af8ac4384a08c4f1c08a68ed2fb3724')
 
 prepare() {
-  cd "${pkgname}-${pkgver}"
-  export RUSTUP_TOOLCHAIN=stable
-  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+    cd "${pkgname}-${pkgver}"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target $(rustc --print host-tuple)
 }
 
 build() {
-  cd "${pkgname}-${pkgver}"
-  export RUSTUP_TOOLCHAIN=stable
-  export CARGO_TARGET_DIR=target
-  cargo build --frozen --release
+    cd "${pkgname}-${pkgver}"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --frozen --release
 }
 
 package() {
-  cd "${pkgname}-${pkgver}"
-  install -Dm755 "target/release/pkgdu" "$pkgdir/usr/bin/pkgdu"
-
-  install -Dm644 "README.adoc" "$pkgdir/usr/share/doc/${pkgname}/README.adoc"
+    cd "${pkgname}-${pkgver}"
+    install -Dm755 "target/release/pkgdu" "$pkgdir/usr/bin/pkgdu"
+    install -Dm644 "README.adoc" "$pkgdir/usr/share/doc/${pkgname}/README.adoc"
 }

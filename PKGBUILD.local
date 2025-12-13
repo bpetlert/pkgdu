@@ -14,31 +14,29 @@ source=()
 
 # Using the most recent annotated tag reachable from the last commit.
 pkgver() {
-  cd "$startdir"
-  git describe --long | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
+    cd "$startdir"
+    git describe --long | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
 }
 
 prepare() {
-  cd "$startdir"
-  export RUSTUP_TOOLCHAIN=stable
-  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+    cd "$startdir"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target $(rustc --print host-tuple)
 }
 
 build() {
-  cd "$startdir"
+    cd "$startdir"
+    export RUSTUP_TOOLCHAIN=stable
 
-  export RUSTUP_TOOLCHAIN=stable
+    # Ignore target-dir in ~/.cargo/config, reset it to default: "target".
+    # Add "$srcdir" to support BUILDDIR variable in makepkg.
+    export CARGO_TARGET_DIR=$srcdir/target
 
-  # Ignore target-dir in ~/.cargo/config, reset it to default: "target".
-  # Add "$srcdir" to support BUILDDIR variable in makepkg.
-  export CARGO_TARGET_DIR=$srcdir/target
-
-  cargo build --frozen --release
+    cargo build --frozen --release
 }
 
 package() {
-  cd "$srcdir"
-  install -Dm755 "target/release/pkgdu" "$pkgdir/usr/bin/pkgdu"
-
-  install -Dm644 "$startdir/README.adoc" "$pkgdir/usr/share/doc/${pkgname}/README.adoc"
+    cd "$srcdir"
+    install -Dm755 "target/release/pkgdu" "$pkgdir/usr/bin/pkgdu"
+    install -Dm644 "$startdir/README.adoc" "$pkgdir/usr/share/doc/${pkgname}/README.adoc"
 }

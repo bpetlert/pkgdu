@@ -15,7 +15,7 @@ b2sums=('df1734177bc82113416af36f04590e0b6a168bb63353b3e208028e713741a035d6d1196
 prepare() {
     cd "${pkgname}-${pkgver}"
     export RUSTUP_TOOLCHAIN=stable
-    cargo fetch --locked --target $(rustc --print host-tuple)
+    cargo fetch --locked --target host-tuple
 }
 
 build() {
@@ -27,6 +27,6 @@ build() {
 
 package() {
     cd "${pkgname}-${pkgver}"
-    install -Dm755 "target/release/pkgdu" "$pkgdir/usr/bin/pkgdu"
-    install -Dm644 "README.adoc" "$pkgdir/usr/share/doc/${pkgname}/README.adoc"
+    install -vDm755 -t "${pkgdir}/usr/bin" target/release/pkgdu
+    install -vDm644 -t "${pkgdir}/usr/share/doc/${pkgname}" README.adoc
 }

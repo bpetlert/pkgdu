@@ -2,16 +2,30 @@ mod args;
 mod report;
 
 use std::{
-    io::{self, Write},
+    io::{
+        self,
+        Write,
+    },
     process::ExitCode,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{
+    Context,
+    Result,
+    anyhow,
+    bail,
+};
 use clap::Parser;
-use tracing::{debug, error};
+use tracing::{
+    debug,
+    error,
+};
 use tracing_subscriber::EnvFilter;
 
-use crate::{args::Arguments, report::Report};
+use crate::{
+    args::Arguments,
+    report::Report,
+};
 
 fn run() -> Result<()> {
     let filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::try_new("pkgdu=warn")?);

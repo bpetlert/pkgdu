@@ -1,52 +1,28 @@
-= PKGDU
-:toc:
-:toc-placement!:
-ifndef::env-github[:icons: font]
-ifdef::env-github[]
-:status:
-:caution-caption: :fire:
-:important-caption: :exclamation:
-:note-caption: :paperclip:
-:tip-caption: :bulb:
-:warning-caption: :warning:
-endif::[]
+# pkgdu
 
-image:https://img.shields.io/github/v/tag/bpetlert/pkgdu?include_prereleases&label=release&style=flat-square[Release,link=https://github.com/bpetlert/pkgdu/releases/latest]
-image:https://img.shields.io/aur/version/pkgdu?style=flat-square["AUR: pkgdu",link=https://aur.archlinux.org/packages/pkgdu/]
-image:https://img.shields.io/github/license/bpetlert/pkgdu?style=flat-square["License: GPL-3.0-or-later",link=./COPYING]
+[![Release](https://img.shields.io/github/v/release/bpetlert/pkgdu?style=flat-square)](https://github.com/bpetlert/pkgdu/releases/latest)
+[![AUR](https://img.shields.io/aur/version/pkgdu?style=flat-square)](https://aur.archlinux.org/packages/pkgdu)
+[![License](https://img.shields.io/github/license/bpetlert/pkgdu?style=flat-square)](./COPYING)
 
-*pkgdu* is a tool to display packages disk usage size for Arch Linux.
+**pkgdu** is a tool to display packages disk usage size for Arch Linux.
 
-toc::[]
+## Installation
 
-== Installation
+### Arch Linux
+It is available on AUR as [pkgdu](https://aur.archlinux.org/packages/pkgdu).
+To build and install the arch package from GIT source:
 
-=== Cargo
+```bash
+git clone https://github.com/bpetlert/pkgdu.git
+cd pkgdu
+makepkg -p PKGBUILD.local
+pacman -U pkgdu-xxxx-1-x86_64.pkg.tar
+```
 
-*pkgdu* can be used without installation by run:
+## Usage
 
-[source,console]
-$ cargo run
-
-To install in `$HOME/.cargo/bin`, run:
-[source,console]
-$ cargo install --path .
-
-=== Arch Linux
-*pkgdu* can be installed from https://aur.archlinux.org/packages/pkgdu[AUR].
-To build and install arch package from GIT source:
-
-[source,console]
-$ git clone https://github.com/bpetlert/pkgdu.git
-$ cd pkgdu
-$ makepkg -p PKGBUILD.local
-$ pacman -U pkgdu-xxxx-1-x86_64.pkg.tar
-
-== Usage
-
-.Normal output
-[source,console]
-----
+Normal output
+```bash
 $ pkgdu --si | head
  5.61 GB     kicad-library-3d
  1.44 GB     texlive-fontsextra
@@ -58,11 +34,10 @@ $ pkgdu --si | head
  390.17 MB   languagetool
  386.89 MB   llvm
  367.21 MB   noto-fonts-extra
-----
+```
 
-.Include grand total
-[source,console]
-----
+Include grand total
+```bash
 $ pkgdu --total --si | tail
  694 B       fuse-common
  221 B       dashbinsh
@@ -74,18 +49,16 @@ $ pkgdu --total --si | tail
  0 B         ruby-bundledgems
  0 B         ruby-stdlib
  29.96 GB    (TOTAL)
-----
+```
 
-.Show only grand total
-[source,console]
-----
+Show only grand total
+```bash
 $ pkgdu --quiet --si
  29.96 GB   (TOTAL)
-----
+```
 
-.Filter package name using glob pettern
-[source,console]
-----
+Filter package name using glob pattern
+```bash
 $ pkgdu --description --total --si "cargo-*"
  71.28 MB    cargo-c           A cargo subcommand to build and install C-ABI compatibile dynamic and static libraries
  20.41 MB    cargo-make        Rust task runner and build tool
@@ -101,11 +74,10 @@ $ pkgdu --description --total --si "cargo-*"
  2.84 MB     cargo-watch       Utility for Cargo to compile projects when sources change
  1.13 MB     cargo-bloat       Find out what takes most of the space in your executable
  172.46 MB   (TOTAL)
-----
+```
 
-.How many packages and how much disk space required for installing `zstd`?
-[source,console]
-----
+How many packages and how much disk space required for installing `zstd`?
+```bash
 $ pkgdu --total --si --recursive-depends-on "zstd"
  144.41 MB   gcc-libs
  49.66 MB    glibc
@@ -121,8 +93,8 @@ $ pkgdu --total --si --recursive-depends-on "zstd"
  348.35 kB   zlib
  21.79 kB    filesystem
  222.60 MB   (TOTAL)
-----
+```
 
-== License
+## License
 
-*link:./COPYING[GNU General Public License v3.0 or later]*
+[GNU General Public License v3.0 or later](./COPYING)

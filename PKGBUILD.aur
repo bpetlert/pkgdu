@@ -28,5 +28,5 @@ build() {
 package() {
     cd "${pkgname}-${pkgver}"
     install -vDm755 -t "${pkgdir}/usr/bin" target/release/pkgdu
-    install -vDm644 -t "${pkgdir}/usr/share/doc/${pkgname}" README.adoc
+    install -vDm644 -t "${pkgdir}/usr/share/doc/${pkgname}" README.md
 }
